@@ -1,0 +1,22 @@
+{
+  "name": "digitalize-labs",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev --filter=@dl/webapp --filter=@dl/landingpage --filter=@dl/admin",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "dev:webapp": "pnpm -F @dl/webapp dev",
+    "dev:landing": "pnpm -F @dl/landingpage dev",
+    "dev:admin": "pnpm -F @dl/admin dev",
+    "db:generate": "pnpm -F @dl/database db:generate",
+    "db:push": "pnpm -F @dl/database db:push",
+    "db:migrate": "pnpm -F @dl/database db:migrate",
+    "db:seed": "pnpm -F @dl/database db:seed",
+    "db:studio": "pnpm -F @dl/database db:studio"
+  },
+  "devDependencies": {
+    "turbo": "^2.4.0"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

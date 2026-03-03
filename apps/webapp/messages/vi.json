@@ -1,0 +1,87 @@
+{
+    "Sidebar": {
+        "home": "Trang chủ",
+        "dashboard": "Bảng điều khiển",
+        "processing": "Đang xử lý",
+        "search": "Tìm kiếm",
+        "graph": "Đồ thị Tri thức",
+        "admin": "Quản trị Tài liệu"
+    },
+    "Theme": {
+        "dark": "Chế độ Tối",
+        "light": "Chế độ Sáng",
+        "settings": "Cài đặt"
+    },
+    "Topbar": {
+        "title": "Hệ thống Số hóa",
+        "closeSidebar": "Đóng thanh bên",
+        "openSidebar": "Mở thanh bên",
+        "runCleanup": "Chạy Dọn dẹp Bộ nhớ"
+    },
+    "Home": {
+        "title": "Hệ thống số hóa hồ sơ pháp lý chuyên biệt có AI hỗ trợ.",
+        "subtitle": "Tải lên PDF hoặc Hình ảnh. Trích xuất văn bản, xác minh dữ liệu và trực quan hóa các kết nối trong đồ thị tri thức tương tác.",
+        "uploadPrompt": "Kéo thả hoặc Nhấp để Tải lên",
+        "supportedFormats": "Hỗ trợ PDF, JPG, PNG",
+        "startProcessing": "Bắt đầu Xử lý",
+        "ingesting": "Đang tiếp nhận...",
+        "dashboardTitle": "Bảng điều khiển",
+        "dashboardDesc": "Xem trạng thái xử lý và quản lý tài liệu gần đây.",
+        "graphTitle": "Đồ thị Tri thức",
+        "graphDesc": "Khám phá các mối quan hệ thực thể trong không gian 3D.",
+        "metric1": "Tốc độ tra cứu 2 giây",
+        "metric2": "Độ chính xác 99.9% với Human-in-the-loop",
+        "keyword1": "Chuẩn METS/ALTO XML",
+        "keyword2": "Mã hóa AES-256",
+        "keyword3": "Tuân thủ Nghị định 13/2023/NĐ-CP",
+        "footer": "© 2026 Nhóm Digitalize Labs. Dự án: SV_STARTUP - Lần thứ VIII | Khoa Quản trị - QTKD47A2 | Trường Đại học Luật TP.HCM."
+    },
+    "Dashboard": {
+        "dashboardTitle": "Bảng điều khiển",
+        "dashboardDesc": "Xem trạng thái xử lý và quản lý tài liệu gần đây.",
+        "totalDocs": "Tổng tài liệu",
+        "needsReview": "Cần xem xét",
+        "processing": "Đang xử lý",
+        "errors": "Lỗi",
+        "colDoc": "Tài liệu",
+        "colPages": "Số trang",
+        "colStatus": "Trạng thái",
+        "colUploaded": "Tải lên",
+        "colAction": "Thao tác",
+        "view": "Xem",
+        "loading": "Đang tải dữ liệu...",
+        "noDocs": "Không tìm thấy tài liệu nào.",
+        "uploadFirst": "Về trang chủ để tải lên tài liệu đầu tiên.",
+        "deleteSuccess": "File đã được xóa thành công.",
+        "deleteError": "Xóa file thất bại.",
+        "deleteConfirm": "Xóa file vật lý cho \"{title}\"?",
+        "deleteHover": "Xóa file vật lý",
+        "deleteTooltip": "Thao tác này chỉ xóa file PDF/Ảnh vật lý để giải phóng dung lượng. Dữ liệu XML đã bóc tách vẫn được lưu trữ an toàn."
+    },
+    "Processing": {
+        "title": "Quy trình Xử lý",
+        "refresh": "Làm mới",
+        "loading": "Đang tải trạng thái...",
+        "noDocs": "Hiện không có tài liệu nào đang xử lý.",
+        "retry": "Thử lại các bước lỗi"
+    },
+    "Search": {
+        "title": "Tìm kiếm Toàn văn",
+        "placeholder": "Tìm kiếm khái niệm, thực thể hoặc cụm từ chính xác...",
+        "button": "Tìm kiếm",
+        "searching": "Đang tìm kiếm trong kho dữ liệu...",
+        "noResults": "Không tìm thấy kết quả nào cho"
+    },
+    "Graph": {
+        "title": "Đồ thị Tri thức",
+        "network2d": "Mạng 2D",
+        "sphere3d": "Khối cầu 3D",
+        "entities": "thực thể",
+        "loading": "Đang tạo trực quan hóa...",
+        "noData": "Chưa có dữ liệu đồ thị tri thức. Vui lòng xử lý tài liệu để trích xuất thực thể.",
+        "person": "Người",
+        "location": "Địa điểm",
+        "org": "Tổ chức",
+        "concept": "Khái niệm"
+    }
+}

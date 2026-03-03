@@ -1,0 +1,109 @@
+# =========================
+# Node / Next.js
+# =========================
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Next.js static export cache
+.next-cache/
+
+# =========================
+# Turborepo
+# =========================
+.turbo/
+
+# =========================
+# Prisma SQLite (dev only)
+# =========================
+*.db
+*.db-journal
+
+# =========================
+# Env files (DON'T COMMIT)
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# OS / Editor
+# =========================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# TypeScript / ESLint
+# =========================
+.eslintcache
+
+# =========================
+# Python (scripts/pdf_to_mock.py etc.)
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+pip-wheel-metadata/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# =========================
+# Docker
+# =========================
+**/.dockerignore
+docker-compose.override.yml
+
+# =========================
+# Logs & runtime
+# =========================
+logs/
+tmp/
+*.pid
+
+# =========================
+# Secrets / Keys
+# =========================
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+
+# =========================
+# Optional: if you generate local mock PDFs
+# =========================
+# =========================
+# IMPORTANT: mock output
+# Bạn muốn "đóng cứng" mock => KHÔNG ignore public/mock
+# =========================
+# (giữ nguyên — không ignore)
+
+# Nếu sau này muốn KHÔNG commit mock thì mở dòng dưới:
+# public/mock/
+
+# =========================
+# Generative AI / Disposable Scripts
+# =========================
+generate_svg.py

@@ -1,0 +1,87 @@
+{
+    "Sidebar": {
+        "home": "Home",
+        "dashboard": "Dashboard",
+        "processing": "Processing",
+        "search": "Search",
+        "graph": "Knowledge Graph",
+        "admin": "Admin Documents"
+    },
+    "Theme": {
+        "dark": "Dark Mode",
+        "light": "Light Mode",
+        "settings": "Settings"
+    },
+    "Topbar": {
+        "title": "Digitalize Labs",
+        "closeSidebar": "Close sidebar",
+        "openSidebar": "Open sidebar",
+        "runCleanup": "Run Storage Cleanup"
+    },
+    "Home": {
+        "title": "Transform Documents into Knowledge.",
+        "subtitle": "Upload PDFs or Images. Extract text, verify data, and visualize connections in an interactive knowledge graph.",
+        "uploadPrompt": "Drag & Drop or Click to Upload",
+        "supportedFormats": "Supports PDF, JPG, PNG",
+        "startProcessing": "Start Processing",
+        "ingesting": "Ingesting...",
+        "dashboardTitle": "Dashboard",
+        "dashboardDesc": "View processing status and manage recent documents.",
+        "graphTitle": "Knowledge Graph",
+        "graphDesc": "Explore entity relationships in 3D space.",
+        "metric1": "2 Second Lookup Speed",
+        "metric2": "99.9% Accuracy with Human-in-the-loop",
+        "keyword1": "METS/ALTO XML Standard",
+        "keyword2": "AES-256 Encryption",
+        "keyword3": "Decree 13/2023/ND-CP Compliance",
+        "footer": "© 2026 Digitalize Labs Team. Project: SV_STARTUP - 8th Edition | Faculty of Management - QTKD47A2 | Ho Chi Minh City University of Law."
+    },
+    "Dashboard": {
+        "dashboardTitle": "Dashboard",
+        "dashboardDesc": "View processing status and manage recent documents.",
+        "totalDocs": "Total Documents",
+        "needsReview": "Needs Review",
+        "processing": "Processing",
+        "errors": "Errors",
+        "colDoc": "Document",
+        "colPages": "Pages",
+        "colStatus": "Status",
+        "colUploaded": "Uploaded",
+        "colAction": "Action",
+        "view": "View",
+        "loading": "Loading documents...",
+        "noDocs": "No documents found.",
+        "uploadFirst": "Go to home to upload your first document.",
+        "deleteSuccess": "File successfully deleted.",
+        "deleteError": "Failed to delete file.",
+        "deleteConfirm": "Delete physical file for \"{title}\"?",
+        "deleteHover": "Delete physical file",
+        "deleteTooltip": "This action only deletes the physical PDF/Image file to free up storage. Extracted XML data remains safely stored."
+    },
+    "Processing": {
+        "title": "Processing Workflow",
+        "refresh": "Refresh",
+        "loading": "Loading workflow status...",
+        "noDocs": "No documents are currently processing.",
+        "retry": "Retry Failed Steps"
+    },
+    "Search": {
+        "title": "Full-text Search",
+        "placeholder": "Search for concepts, entities, or exact phrases...",
+        "button": "Search",
+        "searching": "Searching corpus...",
+        "noResults": "No results found for"
+    },
+    "Graph": {
+        "title": "Knowledge Graph",
+        "network2d": "2D Network",
+        "sphere3d": "3D Sphere",
+        "entities": "entities",
+        "loading": "Generating visualization...",
+        "noData": "No knowledge graph data available. Process a document to extract entities.",
+        "person": "Person",
+        "location": "Location",
+        "org": "Organization",
+        "concept": "Concept"
+    }
+}

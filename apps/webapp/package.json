@@ -1,0 +1,52 @@
+{
+    "name": "@dl/webapp",
+    "version": "0.1.3",
+    "private": true,
+    "scripts": {
+        "dev": "next dev --port 3000",
+        "build": "next build",
+        "start": "next start",
+        "lint": "next lint",
+        "test": "vitest run",
+        "test:watch": "vitest"
+    },
+    "dependencies": {
+        "@dl/database": "workspace:*",
+        "@dl/ui": "workspace:*",
+        "@google/generative-ai": "^0.24.1",
+        "@react-three/drei": "^9.105.0",
+        "@react-three/fiber": "^8.16.0",
+        "@tanstack/react-query": "^5.29.0",
+        "@types/three": "^0.163.0",
+        "clsx": "^2.1.0",
+        "cytoscape": "^3.28.0",
+        "framer-motion": "^12.34.3",
+        "lucide-react": "^0.370.0",
+        "next": "14.2.0",
+        "next-intl": "^4.8.3",
+        "react": "^18",
+        "react-cytoscapejs": "^2.0.0",
+        "react-dom": "^18",
+        "sonner": "^2.0.7",
+        "tailwind-merge": "^2.3.0",
+        "three": "^0.163.0",
+        "zustand": "^4.5.2"
+    },
+    "devDependencies": {
+        "@testing-library/dom": "^10.4.1",
+        "@testing-library/react": "^16.3.2",
+        "@types/node": "^20",
+        "@types/react": "^18",
+        "@types/react-dom": "^18",
+        "autoprefixer": "^10.4.23",
+        "eslint": "^8",
+        "eslint-config-next": "14.2.0",
+        "jsdom": "^28.1.0",
+        "postcss": "^8",
+        "tailwindcss": "^3",
+        "tsconfig-paths": "^4.2.0",
+        "typescript": "^5",
+        "vitest": "^4.0.18",
+        "vitest-mock-extended": "^3.1.0"
+    }
+}

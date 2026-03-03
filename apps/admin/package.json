@@ -1,0 +1,39 @@
+{
+    "name": "@dl/admin",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "dev": "next dev --port 3002",
+        "build": "next build",
+        "start": "next start",
+        "lint": "next lint",
+        "test": "vitest run",
+        "test:watch": "vitest"
+    },
+    "dependencies": {
+        "@dl/database": "workspace:*",
+        "@dl/ui": "workspace:*",
+        "@tanstack/react-query": "^5.29.0",
+        "clsx": "^2.1.0",
+        "framer-motion": "^12.34.3",
+        "lucide-react": "^0.370.0",
+        "next": "14.2.0",
+        "next-intl": "^4.8.3",
+        "react": "^18",
+        "react-dom": "^18",
+        "sonner": "^2.0.7"
+    },
+    "devDependencies": {
+        "@types/node": "^20",
+        "@types/react": "^18",
+        "@types/react-dom": "^18",
+        "autoprefixer": "^10.4.23",
+        "eslint": "^8",
+        "eslint-config-next": "14.2.0",
+        "postcss": "^8",
+        "tailwindcss": "^3",
+        "typescript": "^5",
+        "vitest": "^4.0.18",
+        "vitest-mock-extended": "^3.1.0"
+    }
+}

@@ -1,0 +1,181 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =====================================================
+// EXISTING MODELS (preserved + enhanced)
+// =====================================================
+
+model Document {
+  id         String    @id @default(uuid())
+  title      String
+  status     String    @default("pending") // pending, ingest, processing, ready, verified, error
+  phase      String    @default("draft")   // draft, review, approved, archived
+  pageCount  Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  filePath   String?
+  xmlData    String?
+  ocrText    String?
+  // FTS vector column using Prisma's Unsupported type for raw SQL handling
+  searchVector Unsupported("tsvector")?
+  verifiedAt DateTime?
+  deletedAt  DateTime?                     // soft delete timestamp (null = active)
+  deletedBy  String?                       // admin who soft-deleted
+
+  pages     Page[]
+  auditLogs AuditLog[]
+  edges     GraphEdge[]
+
+  @@index([status])
+  @@index([phase])
+  @@index([deletedAt])
+}
+
+model Page {
+  id          String  @id @default(uuid())
+  documentId  String
+  pageNo      Int
+  imageUrl    String
+  width       Int     @default(0)
+  height      Int     @default(0)
+  needsReview Boolean @default(false)
+  assets      String?
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+}
+
+// =====================================================
+// Trial Registration (Landing Page Leads)
+// =====================================================
+
+model TrialLead {
+  id          String   @id @default(uuid())
+  name        String
+  email       String
+  phone       String
+  company     String?
+  interest    String                        // e.g. "store", "dispatch", "digitize", "process"
+  status      String   @default("new")      // new, contacted, converted, rejected
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([email])
+}
+
+// =====================================================
+// Admin User & Authentication
+// =====================================================
+
+model AdminUser {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  hashedPassword String
+  name           String
+  role           String   @default("admin")    // superadmin, admin, viewer
+  isActive       Boolean  @default(true)
+  lastLoginAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  sessions  AdminSession[]
+  auditLogs AuditLog[]
+
+  @@index([email])
+}
+
+model AdminSession {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+// =====================================================
+// Audit Log
+// =====================================================
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String                         // LOGIN, LOGOUT, DOC_STATUS_CHANGE, DOC_HARD_DELETE, LEAD_UPDATE, etc.
+  entity     String?                        // "Document", "TrialLead", etc.
+  entityId   String?
+  details    String?                        // JSON string with before/after
+  ipAddress  String?
+  userId     String?
+  documentId String?
+  createdAt  DateTime @default(now())
+
+  user     AdminUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  document Document?  @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@index([action])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([entity, entityId])
+}
+
+// =====================================================
+// Simple Page Visit Tracking (Traffic)
+// =====================================================
+
+model PageVisit {
+  id        String   @id @default(uuid())
+  app       String                         // "webapp", "landingpage"
+  path      String
+  ipAddress String?
+  userAgent String?
+  referrer  String?
+  createdAt DateTime @default(now())
+
+  @@index([app, createdAt])
+  @@index([path])
+}
+
+// =====================================================
+// Knowledge Graph (Entities & Keywords)
+// =====================================================
+
+model GraphNode {
+  id        String   @id @default(uuid())
+  label     String
+  type      String   // e.g., "KEYWORD", "ORG", "PER", "LOC"
+  createdAt DateTime @default(now())
+
+  edges     GraphEdge[]
+
+  @@unique([label, type])
+  @@index([label])
+}
+
+model GraphEdge {
+  id         String   @id @default(uuid())
+  nodeId     String
+  documentId String
+  weight     Float    @default(1.0)
+
+  node       GraphNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  document   Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([nodeId, documentId])
+  @@index([nodeId])
+  @@index([documentId])
+}
