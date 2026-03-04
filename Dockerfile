@@ -1,4 +1,10 @@
 FROM node:20-bookworm-slim AS base
+# =========================================================
+# CHUYỂN LÊN ĐÂY: Cài OpenSSL ngay từ đầu để Prisma nhận diện 
+# đúng phiên bản (OpenSSL 3.0 của Bookworm) cho tất cả các khâu
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+# =========================================================
+
 # Thiết lập pnpm theo chuẩn của dự án (version 9.0.0)
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -39,11 +45,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 # Lưu ARG thành ENV để lúc chạy container có thể đọc được tên app trong lệnh CMD
 ENV APP=${APP_NAME}
-
-# =========================================================
-# Cài đặt thư viện OpenSSL cho Prisma Engine
-RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
-# =========================================================
 
 RUN groupadd --system --gid 1001 nodejs
 RUN useradd --system --uid 1001 nextjs
