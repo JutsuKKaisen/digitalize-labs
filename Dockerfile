@@ -40,6 +40,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Lưu ARG thành ENV để lúc chạy container có thể đọc được tên app trong lệnh CMD
 ENV APP=${APP_NAME}
 
+# =========================================================
+# Cài đặt thư viện OpenSSL cho Prisma Engine
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+# =========================================================
+
 RUN groupadd --system --gid 1001 nodejs
 RUN useradd --system --uid 1001 nextjs
 
@@ -55,7 +60,7 @@ COPY --from=installer --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/standalo
 COPY --from=installer --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/static ./apps/${APP_NAME}/.next/static
 
 # ==========================================================
-# THÊM 2 DÒNG NÀY ĐỂ FIX LỖI PRISMA ENGINE BỊ NEXT.JS VỨT BỎ
+# Fix lỗi Prisma Engine bị Next.js vứt bỏ
 COPY --from=installer --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=installer --chown=nextjs:nodejs /app/packages/database ./packages/database
 # ==========================================================
