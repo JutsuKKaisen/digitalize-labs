@@ -14,8 +14,11 @@ export async function processDocumentInBackground(
   try {
     const outRoot = path.join(process.cwd(), "public", "mock");
 
+    // LẤY URL TỪ BIẾN MÔI TRƯỜNG VÀ NỐI VỚI ENDPOINT /process
+    const engineUrl = process.env.PYTHON_ENGINE_URL || "http://127.0.0.1:8000";
+
     // Call the Python FastAPI worker
-    const response = await fetch("process.env.PYTHON_ENGINE_URL", {
+    const response = await fetch(`${engineUrl}/process`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
