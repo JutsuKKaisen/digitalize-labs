@@ -28,11 +28,17 @@ ARG APP_NAME
 # Build ứng dụng Next.js
 RUN pnpm turbo run build --filter=@dl/${APP_NAME}...
 
+# Ép Docker tự tạo một thư mục public (nếu chưa có) để bước runner ở dưới không bị lỗi "not found"
+RUN mkdir -p /app/apps/${APP_NAME}/public
+
 FROM base AS runner
 WORKDIR /app
 ARG APP_NAME
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# Lưu ARG thành ENV để lúc chạy container có thể đọc được tên app trong lệnh CMD
+ENV APP=${APP_NAME}
 
 RUN groupadd --system --gid 1001 nodejs
 RUN useradd --system --uid 1001 nextjs
@@ -40,10 +46,11 @@ RUN useradd --system --uid 1001 nextjs
 # Set up thư mục cho Next.js Standalone
 COPY --from=installer /app/apps/${APP_NAME}/public ./apps/${APP_NAME}/public
 
-# Phân quyền cho user nextjs
+# Phân quyền cho user nextjs (đảm bảo upload file không bị lỗi EACCES)
 RUN mkdir -p /app/uploads/pdfs /app/public/mock && chown -R nextjs:nodejs /app/uploads /app/public
 USER nextjs
 
+# Copy các file của chế độ Standalone
 COPY --from=installer --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/standalone ./
 COPY --from=installer --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/static ./apps/${APP_NAME}/.next/static
 
@@ -51,5 +58,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Khởi chạy server Next.js 
-CMD ["node", "server.js"]
+# Khởi chạy server Next.js từ file server.js nằm sâu bên trong thư mục của từng app
+CMD node apps/${APP}/server.js
