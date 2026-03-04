@@ -31,8 +31,8 @@ services:
       - "127.0.0.1:8000:8000" # Internal only
     volumes:
       # KHAI BÁO DÙNG CHUNG Ổ CỨNG VỚI WEBAPP
-      - uploads:/app/uploads
-      - mock_data:/app/public/mock
+      - uploads:/app/apps/webapp/uploads
+      - mock_data:/app/apps/webapp/public/mock
     deploy:
       resources:
         limits:
@@ -61,8 +61,8 @@ services:
       - CRON_SECRET=${CRON_SECRET:-}
     volumes:
       # KHAI BÁO DÙNG CHUNG Ổ CỨNG VỚI PYTHON ENGINE
-      - uploads:/app/uploads
-      - mock_data:/app/public/mock
+      - uploads:/app/apps/webapp/uploads
+      - mock_data:/app/apps/webapp/public/mock
     depends_on:
       postgres:
         condition: service_healthy
