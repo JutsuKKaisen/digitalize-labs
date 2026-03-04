@@ -11,19 +11,19 @@ const prisma = new PrismaClient();
 
 const ADMIN_ACCOUNTS = [
     {
-        email: "admin@digitalizelabs.vn",
+        email: "admin@digitalizelabs.com",
         password: "Admin@2026!",
         name: "Super Admin",
         role: "superadmin",
     },
     {
-        email: "manager@digitalizelabs.vn",
+        email: "manager@digitalizelabs.com",
         password: "Manager@2026!",
         name: "Content Manager",
         role: "admin",
     },
     {
-        email: "reviewer@digitalizelabs.vn",
+        email: "reviewer@digitalizelabs.com",
         password: "Reviewer@2026!",
         name: "Document Reviewer",
         role: "admin",
