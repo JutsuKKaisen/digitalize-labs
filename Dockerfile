@@ -54,6 +54,12 @@ USER nextjs
 COPY --from=installer --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/standalone ./
 COPY --from=installer --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/static ./apps/${APP_NAME}/.next/static
 
+# ==========================================================
+# THÊM 2 DÒNG NÀY ĐỂ FIX LỖI PRISMA ENGINE BỊ NEXT.JS VỨT BỎ
+COPY --from=installer --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=installer --chown=nextjs:nodejs /app/packages/database ./packages/database
+# ==========================================================
+
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
