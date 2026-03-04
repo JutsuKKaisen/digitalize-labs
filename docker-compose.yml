@@ -30,8 +30,9 @@ services:
     ports:
       - "127.0.0.1:8000:8000" # Internal only
     volumes:
-      # KHAI BÁO DÙNG CHUNG Ổ CỨNG VỚI WEBAPP
+      # Nơi Python Engine cất file PDF sau khi tải về:
       - uploads:/app/apps/webapp/uploads
+      # Nơi Python Engine xuất ảnh OCR ra để Webapp đọc:
       - mock_data:/app/apps/webapp/public/mock
     deploy:
       resources:
@@ -60,8 +61,9 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - CRON_SECRET=${CRON_SECRET:-}
     volumes:
-      # KHAI BÁO DÙNG CHUNG Ổ CỨNG VỚI PYTHON ENGINE
+      # Nơi Webapp cất file PDF:
       - uploads:/app/apps/webapp/uploads
+      # Nơi Next.js sẽ tìm ảnh để hiển thị lên trình duyệt:
       - mock_data:/app/apps/webapp/public/mock
     depends_on:
       postgres:
