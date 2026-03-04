@@ -30,6 +30,7 @@ services:
     ports:
       - "127.0.0.1:8000:8000" # Internal only
     volumes:
+      # KHAI BÁO DÙNG CHUNG Ổ CỨNG VỚI WEBAPP
       - uploads:/app/uploads
       - mock_data:/app/public/mock
     deploy:
@@ -37,7 +38,7 @@ services:
         limits:
           memory: 2G
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8000/docs" ]
+      test: [ "CMD-SHELL", "curl -f http://localhost:8000/docs || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -59,6 +60,7 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - CRON_SECRET=${CRON_SECRET:-}
     volumes:
+      # KHAI BÁO DÙNG CHUNG Ổ CỨNG VỚI PYTHON ENGINE
       - uploads:/app/uploads
       - mock_data:/app/public/mock
     depends_on:
