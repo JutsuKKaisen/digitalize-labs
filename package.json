@@ -2,10 +2,13 @@
   "name": "digitalize-labs",
   "private": true,
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
     "dev": "turbo dev --filter=@dl/webapp --filter=@dl/landingpage --filter=@dl/admin",
+    "dev:all": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
     "test": "turbo test",
+    "clean": "rimraf node_modules apps/*/node_modules packages/*/node_modules .turbo apps/*/.turbo packages/*/.turbo apps/*/.next",
     "dev:webapp": "pnpm -F @dl/webapp dev",
     "dev:landing": "pnpm -F @dl/landingpage dev",
     "dev:admin": "pnpm -F @dl/admin dev",

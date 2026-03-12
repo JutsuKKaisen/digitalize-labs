@@ -6,6 +6,7 @@ const withNextIntl = createNextIntlPlugin(
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ['@dl/ui', '@dl/database'],
   output: 'standalone',
   reactStrictMode: true,
   typescript: { ignoreBuildErrors: true },

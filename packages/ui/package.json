@@ -5,6 +5,7 @@
     "main": "./src/index.ts",
     "types": "./src/index.ts",
     "scripts": {
+        "build": "echo '@dl/ui: build complete (source-only package)'",
         "lint": "tsc --noEmit"
     },
     "dependencies": {
