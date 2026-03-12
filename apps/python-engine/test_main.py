@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
 
-from main import app, extract_entities_and_keywords
+from main import app, extract_entities_and_keywords, inject_wikilinks, hash_text_chunks
 
 
 client = TestClient(app)
@@ -122,8 +122,184 @@ class TestProcessEndpoint:
             assert "graph" in data
             assert len(data["pages"]) == 1
             assert data["pages"][0]["pageNo"] == 1
+            # Obsidian enrichment fields
+            assert "markdownContent" in data
+            assert "detectedEntities" in data
+            assert "textChunks" in data
         finally:
             shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+# ============================================================
+# Unit Tests: inject_wikilinks (Obsidian-Style Enrichment)
+# ============================================================
+
+class TestWikilinkInjection:
+    """Tests for the Vietnamese legal entity wikilink injection."""
+
+    def test_empty_string_returns_empty(self):
+        result, entities = inject_wikilinks("")
+        assert result == ""
+        assert entities == []
+
+    def test_none_returns_none(self):
+        result, entities = inject_wikilinks(None)
+        assert result is None
+        assert entities == []
+
+    def test_whitespace_returns_same(self):
+        result, entities = inject_wikilinks("   ")
+        assert result == "   "
+        assert entities == []
+
+    def test_decree_pattern(self):
+        """Nghị định 13/2023/NĐ-CP should be wrapped in [[wikilinks]]."""
+        text = "Theo Nghị định 13/2023/NĐ-CP về quản lý."
+        result, entities = inject_wikilinks(text)
+        assert "[[Nghị định 13/2023/NĐ-CP]]" in result
+        assert any(e["type"] == "DECREE" for e in entities)
+
+    def test_decree_short_form(self):
+        """NĐ 45/2024 should be detected."""
+        text = "Căn cứ NĐ 45/2024 ban hành."
+        result, entities = inject_wikilinks(text)
+        assert "[[NĐ 45/2024]]" in result
+
+    def test_law_with_number(self):
+        """Luật số 59/2020/QH14 should be wrapped."""
+        text = "Áp dụng Luật số 59/2020/QH14."
+        result, entities = inject_wikilinks(text)
+        assert "[[Luật số 59/2020/QH14]]" in result
+        assert any(e["type"] == "LAW" for e in entities)
+
+    def test_law_named(self):
+        """Luật Doanh nghiệp 2020 should be wrapped."""
+        text = "Tuân thủ Luật Doanh nghiệp 2020 trong hoạt động."
+        result, entities = inject_wikilinks(text)
+        assert "[[Luật Doanh nghiệp 2020]]" in result
+
+    def test_circular_pattern(self):
+        """Thông tư 36/2023/TT-BTC should be detected."""
+        text = "Thông tư 36/2023/TT-BTC quy định thuế."
+        result, entities = inject_wikilinks(text)
+        assert "[[Thông tư 36/2023/TT-BTC]]" in result
+        assert any(e["type"] == "CIRCULAR" for e in entities)
+
+    def test_resolution_pattern(self):
+        """Nghị quyết 01/NQ-CP should be detected."""
+        text = "Ban hành Nghị quyết 01/NQ-CP."
+        result, entities = inject_wikilinks(text)
+        assert "[[Nghị quyết 01/NQ-CP]]" in result
+        assert any(e["type"] == "RESOLUTION" for e in entities)
+
+    def test_company_pattern(self):
+        """Công ty TNHH ABC should be detected."""
+        text = "Đại diện là Công ty TNHH ABC Trading."
+        result, entities = inject_wikilinks(text)
+        assert "[[Công ty TNHH ABC Trading]]" in result
+        assert any(e["type"] == "ORG" for e in entities)
+
+    def test_clause_pattern(self):
+        """Điều 5 and Khoản 3 Điều 12 should be detected."""
+        text = "Theo Điều 5 và Khoản 3 Điều 12."
+        result, entities = inject_wikilinks(text)
+        assert "[[Điều 5]]" in result
+        assert any(e["type"] == "CLAUSE" for e in entities)
+
+    def test_no_double_wrapping(self):
+        """Already-wrapped entities should not be re-wrapped."""
+        text = "Theo [[Nghị định 13/2023/NĐ-CP]] đã ban hành."
+        result, entities = inject_wikilinks(text)
+        assert "[[[[" not in result  # No double wrapping
+
+    def test_tag_header_generated(self):
+        """Tags should be prepended when entities are found."""
+        text = "Nghị định 13/2023 về Điều 5."
+        result, entities = inject_wikilinks(text)
+        assert "#clause" in result or "#decree" in result
+
+    def test_no_tags_for_plain_text(self):
+        """Plain text without legal entities should have no tags."""
+        text = "Hôm nay trời đẹp quá."
+        result, entities = inject_wikilinks(text)
+        assert not result.startswith("#")
+        assert len(entities) == 0
+
+    def test_multiple_entities_in_one_text(self):
+        """Multiple different entities should all be detected."""
+        text = "Căn cứ Nghị định 13/2023 và Luật số 59/2020/QH14 tại Điều 5."
+        result, entities = inject_wikilinks(text)
+        assert len(entities) >= 3  # At least decree, law, clause
+
+    def test_deduplication(self):
+        """Same entity appearing twice should only produce one entry."""
+        text = "Nghị định 13/2023 rồi lại Nghị định 13/2023."
+        result, entities = inject_wikilinks(text)
+        decree_entities = [e for e in entities if e["type"] == "DECREE"]
+        assert len(decree_entities) == 1
+
+
+# ============================================================
+# Unit Tests: hash_text_chunks (SHA-256 Paragraph Hashing)
+# ============================================================
+
+class TestChunkHashing:
+    """Tests for the SHA-256 paragraph chunk hashing."""
+
+    def test_empty_string_returns_empty(self):
+        result = hash_text_chunks("")
+        assert result == []
+
+    def test_none_returns_empty(self):
+        result = hash_text_chunks(None)
+        assert result == []
+
+    def test_short_text_skipped(self):
+        """Text shorter than min_length should be skipped."""
+        result = hash_text_chunks("Short.")
+        assert result == []
+
+    def test_deterministic_hash(self):
+        """Same text should always produce the same SHA-256 hash."""
+        text = "Đây là một đoạn văn bản dài đủ để tạo hash SHA-256."
+        result1 = hash_text_chunks(text)
+        result2 = hash_text_chunks(text)
+        assert len(result1) > 0
+        assert result1[0]["hash"] == result2[0]["hash"]
+
+    def test_different_text_different_hash(self):
+        """Different texts should produce different hashes."""
+        text1 = "Đây là đoạn văn bản thứ nhất có nội dung rất dài."
+        text2 = "Đây là đoạn văn bản thứ hai khác hoàn toàn."
+        r1 = hash_text_chunks(text1)
+        r2 = hash_text_chunks(text2)
+        if r1 and r2:
+            assert r1[0]["hash"] != r2[0]["hash"]
+
+    def test_paragraph_splitting(self):
+        """Double newlines should split into separate chunks."""
+        text = "Đoạn một có nội dung dài đủ để hash.\n\nĐoạn hai cũng có nội dung dài đủ."
+        result = hash_text_chunks(text)
+        assert len(result) == 2
+        assert result[0]["hash"] != result[1]["hash"]
+        assert result[0]["index"] != result[1]["index"]
+
+    def test_chunk_structure(self):
+        """Each chunk should have content, hash, and index keys."""
+        text = "Đoạn văn bản dài đủ để tạo ít nhất một chunk hashing."
+        result = hash_text_chunks(text)
+        if result:
+            chunk = result[0]
+            assert "content" in chunk
+            assert "hash" in chunk
+            assert "index" in chunk
+            assert len(chunk["hash"]) == 64  # SHA-256 hex length
+
+    def test_custom_min_length(self):
+        """Custom min_length should filter short paragraphs."""
+        text = "Short.\n\nA much longer paragraph that exceeds the minimum length threshold."
+        result = hash_text_chunks(text, min_length=50)
+        assert len(result) == 1  # Only the long paragraph
 
 
 # ============================================================

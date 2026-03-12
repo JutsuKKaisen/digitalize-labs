@@ -62,7 +62,13 @@ export default function ProcessingPage() {
   } = useQuery({
     queryKey: ["processingStatus"],
     queryFn: api.getProcessingStatus,
-    refetchInterval: 3000,
+    refetchInterval: (query) => {
+      const activeDocs =
+        (query.state.data as any[])?.some((doc) =>
+          ["pending", "ingest", "processing", "verifying"].includes(doc.status),
+        ) ?? false;
+      return activeDocs ? 3000 : false;
+    },
   });
 
   return (
@@ -134,11 +140,11 @@ export default function ProcessingPage() {
                             className={clsx(
                               "w-8 h-8 rounded-full flex items-center justify-center border-2 bg-card transition-all z-10 shadow-sm",
                               isCompleted &&
-                                "border-emerald-500 text-emerald-500",
+                              "border-emerald-500 text-emerald-500",
                               isProcessing && "border-blue-500 text-blue-500",
                               isError && "border-red-500 text-red-500",
                               step.status === "pending" &&
-                                "border-muted text-muted-foreground",
+                              "border-muted text-muted-foreground",
                             )}
                           >
                             {isCompleted && <CheckCircle2 size={16} />}

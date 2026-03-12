@@ -16,9 +16,17 @@ describe('GET /api/search', () => {
         expect(prisma.$queryRaw).not.toHaveBeenCalled();
     });
 
-    it('should execute raw query and return formatted snippets', async () => {
+    it('should execute CTE query and return formatted snippets with chunk and backlink stats', async () => {
         const mockDbResults = [
-            { docId: 'doc-1', docTitle: 'Legal File 1', rank: 1.5, snippet: 'Test <mark>query</mark> match' }
+            {
+                docId: 'doc-1',
+                docTitle: 'Legal File 1',
+                backlinkCount: 5,
+                baseRank: 1.5,
+                boostedRank: 2.25,
+                chunkIndex: 2,
+                snippet: 'Test <mark>query</mark> match'
+            }
         ];
 
         vi.mocked(prisma.$queryRaw).mockResolvedValueOnce(mockDbResults);
@@ -30,5 +38,8 @@ describe('GET /api/search', () => {
         expect(prisma.$queryRaw).toHaveBeenCalled();
         expect(data.results[0].docId).toBe('doc-1');
         expect(data.results[0].snippet).toContain('<mark>query</mark>');
+        expect(data.results[0].chunkIndex).toBe(2);
+        expect(data.results[0].backlinkCount).toBe(5);
+        expect(data.results[0].boostedRank).toBe(2.25);
     });
 });

@@ -1,114 +1,126 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  buildGraphFromDocuments,
+  getLocalGraph,
+  mapEntityType,
+} from "@/lib/graphParser";
+import type { GraphNode, GraphEdge } from "@/types";
 
 export const dynamic = "force-dynamic";
 
-type GraphNode = {
-  id: string;
-  label: string;
-  entityType: "person" | "location" | "org" | "concept";
-  weight: number;
-};
-
-type GraphEdge = {
-  id: string;
-  from: string;
-  to: string;
-  relation: string;
-  weight: number;
-};
-
 /**
- * GET /api/graph/summary?limitNodes=100
- * Returns graph nodes and edges for the knowledge graph visualization.
- * Generates graph data based on real document entities from the database.
- * In production, this would query a real entity extraction / NER store.
+ * GET /api/graph/summary?limitNodes=200&mode=global
+ * GET /api/graph/summary?mode=local&docId=xxx
+ *
+ * Returns the Knowledge Graph with bidirectional Obsidian-style links.
+ *
+ * Modes:
+ * - "global" (default): Full knowledge graph across all documents.
+ * - "local":  Single document's connected network (Obsidian Local Graph).
  */
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const limitNodes = parseInt(searchParams.get("limitNodes") || "200", 10);
+    const mode = searchParams.get("mode") || "global";
+    const docId = searchParams.get("docId") || null;
 
-    // Check if we have any real documents to base the graph on
+    // Fetch processed documents with their markdownContent for parsing
     const docs = await prisma.document.findMany({
-      where: { status: { in: ["ready", "verified"] } },
-      select: { id: true, title: true },
-      take: 20,
+      where: {
+        status: { in: ["ready", "verified"] },
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        title: true,
+        markdownContent: true,
+        ocrText: true,
+      },
+      take: mode === "local" ? 100 : 50,
     });
 
     if (docs.length === 0) {
-      // No processed documents — return empty graph
       return NextResponse.json({ nodes: [], edges: [] });
     }
 
-    const docIds = docs.map(d => d.id);
+    const docIds = docs.map((d) => d.id);
 
-    // Fetch actual explicit nodes and edges related to these documents
-    const graphEdges = await prisma.graphEdge.findMany({
+    // Fetch existing DB-stored graph nodes/edges (from Python NER + YAKE)
+    const dbEdges = await prisma.graphEdge.findMany({
       where: { documentId: { in: docIds } },
       include: { node: true },
     });
 
-    const nodes: GraphNode[] = [];
-    const edges: GraphEdge[] = [];
-    const addedNodes = new Set<string>();
+    // Build the graph using the Obsidian algorithm
+    const documentInputs = docs.map((doc) => ({
+      id: doc.id,
+      title: doc.title,
+      markdownContent: doc.markdownContent || null,
+    }));
 
-    // 1. Add Document Nodes
-    docs.forEach(doc => {
-      nodes.push({
-        id: `doc_${doc.id}`,
-        label: doc.title.replace(/\.[^.]+$/, "").substring(0, 30),
-        entityType: "location", // Doc nodes will use Location color scheme
-        weight: 1.0,
-      });
-      addedNodes.add(`doc_${doc.id}`);
-    });
+    const dbExistingNodes = dbEdges.map((e) => ({
+      id: e.node.id,
+      label: e.node.label,
+      type: e.node.type,
+    }));
 
-    // 2. Add Entity/Keyword Nodes and Edges
-    const nodeCounts: Record<string, number> = {};
-    graphEdges.forEach(e => {
-      nodeCounts[e.nodeId] = (nodeCounts[e.nodeId] || 0) + 1;
-    });
+    const dbExistingEdges = dbEdges.map((e) => ({
+      nodeId: e.nodeId,
+      documentId: e.documentId,
+      weight: e.weight,
+      node: {
+        id: e.node.id,
+        label: e.node.label,
+        type: e.node.type,
+      },
+    }));
 
-    // Filter to top N nodes to avoid clutter
-    const topNodeIds = new Set(
-      Object.entries(nodeCounts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, limitNodes)
-        .map(entry => entry[0])
+    let graph = buildGraphFromDocuments(
+      documentInputs,
+      dbExistingNodes,
+      dbExistingEdges,
     );
 
-    graphEdges.forEach(e => {
-      if (!topNodeIds.has(e.nodeId)) return;
+    // Apply mode filter
+    if (mode === "local" && docId) {
+      graph = getLocalGraph(graph, docId);
+    }
 
-      const n = e.node;
-      const kwId = `kw_${n.id}`; // using prefix for UI disambiguation
+    // Apply node limit (keep document nodes + top entities by backlinkCount)
+    if (graph.nodes.length > limitNodes) {
+      const docNodes = graph.nodes.filter((n) =>
+        n.entityType === "document",
+      );
+      const entityNodes = graph.nodes
+        .filter((n) => n.entityType !== "document")
+        .sort((a, b) => (b.backlinkCount || 0) - (a.backlinkCount || 0))
+        .slice(0, limitNodes - docNodes.length);
 
-      if (!addedNodes.has(kwId)) {
-        let eType: "person" | "location" | "org" | "concept" = "concept";
-        if (n.type === "PER") eType = "person";
-        else if (n.type === "ORG") eType = "org";
-        else if (n.type === "LOC") eType = "location";
+      const keepIds = new Set([
+        ...docNodes.map((n) => n.id),
+        ...entityNodes.map((n) => n.id),
+      ]);
 
-        nodes.push({
-          id: kwId,
-          label: n.label,
-          entityType: eType,
-          weight: Math.min((nodeCounts[n.id] || 1) * 0.2, 1.0),
-        });
-        addedNodes.add(kwId);
-      }
+      graph = {
+        nodes: graph.nodes.filter((n) => keepIds.has(n.id)),
+        edges: graph.edges.filter(
+          (e) => keepIds.has(e.from) && keepIds.has(e.to),
+        ),
+      };
+    }
 
-      edges.push({
-        id: `e_${e.documentId}_${n.id}`,
-        from: `doc_${e.documentId}`,
-        to: kwId,
-        relation: "contains",
-        weight: e.weight || 0.5,
-      });
+    return NextResponse.json({
+      nodes: graph.nodes,
+      edges: graph.edges,
+      meta: {
+        mode,
+        totalDocuments: docs.length,
+        totalNodes: graph.nodes.length,
+        totalEdges: graph.edges.length,
+      },
     });
-
-    return NextResponse.json({ nodes, edges });
   } catch (error) {
     console.error("Error generating graph summary:", error);
     return NextResponse.json(

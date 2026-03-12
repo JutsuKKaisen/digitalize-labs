@@ -13,7 +13,7 @@ export async function GET() {
     const docs = await prisma.document.findMany({
       where: {
         status: {
-          in: ["pending", "ingest", "processing"],
+          in: ["pending", "ingest", "processing", "verifying"],
         },
       },
       orderBy: { createdAt: "desc" },
@@ -96,6 +96,7 @@ function buildSteps(status: string) {
     pending: 0,
     ingest: 1,
     processing: 2,
+    verifying: 3,
     ready: 4,
     verified: 4,
     error: 2, // Errored at OCR step typically

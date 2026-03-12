@@ -64,10 +64,22 @@ export default function SearchPage() {
                 <div className="flex items-center gap-2 text-primary text-sm font-medium">
                   <FileText size={14} />
                   {result.docTitle}
-                  <span className="text-muted-foreground/50">/</span>
-                  <span className="text-muted-foreground">
-                    Page {result.pageNo}
-                  </span>
+                  {result.chunkIndex !== undefined && (
+                    <>
+                      <span className="text-muted-foreground/50">/</span>
+                      <span className="text-muted-foreground whitespace-nowrap">
+                        Chunk {result.chunkIndex + 1}
+                      </span>
+                    </>
+                  )}
+                  {result.backlinkCount !== undefined && result.backlinkCount > 0 && (
+                    <>
+                      <span className="text-muted-foreground/50">•</span>
+                      <span className="text-primary/80 text-xs px-2 py-0.5 rounded-full bg-primary/10 whitespace-nowrap">
+                        {result.backlinkCount} backlinks
+                      </span>
+                    </>
+                  )}
                 </div>
                 <Link
                   href={`/doc/${result.docId}/view`}
@@ -87,6 +99,12 @@ export default function SearchPage() {
           {data?.results.length === 0 && (
             <div className="text-center text-muted-foreground mt-12 bg-muted/50 p-8 rounded-lg border border-border">
               {t("noResults")} &quot;{searchTerm}&quot;
+            </div>
+          )}
+
+          {!isLoading && data?.results.length !== 0 && (
+            <div className="text-center text-xs text-muted-foreground/60 mt-8">
+              💡 Tip: Try searching for tags like <span className="font-mono text-primary/80">#decree</span> or exact entity names.
             </div>
           )}
         </div>

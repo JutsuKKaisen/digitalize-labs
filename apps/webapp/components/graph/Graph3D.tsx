@@ -39,12 +39,18 @@ declare global {
   }
 }
 
-// Configuration - Vibrant Palette
-const NODE_COLORS = {
-  person: "#3b82f6", // Blue
-  org: "#d946ef", // Fuchsia
+// Configuration - Vibrant Palette (Expanded for Obsidian Entity Types)
+const NODE_COLORS: Record<string, string> = {
+  person: "#3b82f6",   // Blue
+  org: "#d946ef",      // Fuchsia
   location: "#22c55e", // Green
-  concept: "#f97316", // Orange
+  concept: "#f97316",  // Orange
+  decree: "#ef4444",   // Red — Legal Decrees
+  law: "#6366f1",      // Indigo — Laws
+  circular: "#14b8a6", // Teal — Circulars
+  clause: "#ec4899",   // Pink — Articles/Clauses
+  tag: "#f59e0b",      // Amber — Tags
+  document: "#64748b", // Slate — Document nodes
 };
 
 const SPHERE_RADIUS = 35;
@@ -315,12 +321,16 @@ const Nodes = ({
   positions,
   onNodeClick,
   opacity,
+  connectedIds,
+  connectedOpacity,
   theme,
 }: {
   nodes: GraphNode[];
   positions: THREE.Vector3[];
   onNodeClick: (node: GraphNode, pos: THREE.Vector3) => void;
   opacity: number;
+  connectedIds?: Set<string> | null;
+  connectedOpacity?: number;
   theme: "light" | "dark";
 }) => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
@@ -333,22 +343,28 @@ const Nodes = ({
     nodes.forEach((node, i) => {
       tempObject.position.copy(positions[i]);
       tempObject.lookAt(0, 0, 0);
-      tempObject.scale.setScalar(1);
+      // Scale up connected nodes in focus mode
+      const isConnected = !connectedIds || connectedIds.has(node.id);
+      tempObject.scale.setScalar(isConnected ? 1 : 0.6);
       tempObject.updateMatrix();
       meshRef.current!.setMatrixAt(i, tempObject.matrix);
 
       const colorHex =
-        NODE_COLORS[node.entityType as keyof typeof NODE_COLORS] ||
+        NODE_COLORS[node.entityType] ||
         NODE_COLORS.concept;
       const c = new THREE.Color(colorHex);
       if (theme === "dark") c.offsetHSL(0, 0, 0.1);
+      // Fade unconnected nodes in focus mode
+      if (connectedIds && !connectedIds.has(node.id)) {
+        c.multiplyScalar(0.3);
+      }
       c.toArray(colorArray, i * 3);
     });
     meshRef.current.instanceMatrix.needsUpdate = true;
     if (meshRef.current.geometry.attributes.color) {
       meshRef.current.geometry.attributes.color.needsUpdate = true;
     }
-  }, [nodes, positions, theme, colorArray, tempObject]);
+  }, [nodes, positions, theme, colorArray, tempObject, connectedIds]);
 
   return (
     <group>
@@ -448,9 +464,31 @@ export const Graph3D = ({
 
   const positions = useMemo(() => getSphericalCoordinates(nodes), [nodes]);
 
+  // Focus Mode: compute connected node IDs when a node is selected
+  const connectedIds = useMemo(() => {
+    if (!selectedNode) return null;
+    const ids = new Set<string>();
+    ids.add(selectedNode.id);
+    edges.forEach((e) => {
+      if (e.from === selectedNode.id) ids.add(e.to);
+      if (e.to === selectedNode.id) ids.add(e.from);
+    });
+    return ids;
+  }, [selectedNode, edges]);
+
+  // Compute opacity for each node based on focus mode
+  const focusOpacity = connectedIds ? 0.12 : 1;
+  const connectedOpacity = 1;
+
   const handleNodeClick = (node: GraphNode, pos: THREE.Vector3) => {
-    setSelectedNode(node);
-    setAutoRotate(false);
+    if (selectedNode?.id === node.id) {
+      // Clicking same node toggles focus off
+      setSelectedNode(null);
+      setAutoRotate(true);
+    } else {
+      setSelectedNode(node);
+      setAutoRotate(false);
+    }
   };
 
   if (nodes.length === 0) {
@@ -507,7 +545,7 @@ export const Graph3D = ({
             nodes={nodes}
             edges={edges}
             positions={positions}
-            opacity={1}
+            opacity={connectedIds ? 0.08 : 1}
             theme={theme}
           />
           <EdgeParticles
@@ -520,7 +558,9 @@ export const Graph3D = ({
             nodes={nodes}
             positions={positions}
             onNodeClick={handleNodeClick}
-            opacity={1}
+            opacity={focusOpacity}
+            connectedIds={connectedIds}
+            connectedOpacity={connectedOpacity}
             theme={theme}
           />
 
@@ -609,17 +649,29 @@ export const Graph3D = ({
            `}
           >
             <div className="flex items-center gap-2 mb-2 text-muted-foreground text-xs font-semibold uppercase">
-              <Info size={12} /> Connected to
+              <Info size={12} /> Connections
             </div>
             <div
               className={`text-sm ${theme === "dark" ? "text-slate-200" : "text-slate-700"}`}
             >
-              {
-                edges.filter(
-                  (e) => e.from === selectedNode.id || e.to === selectedNode.id,
-                ).length
-              }{" "}
-              other entities
+              <div className="flex justify-between">
+                <span>Linked entities</span>
+                <span className="font-mono font-bold">
+                  {
+                    edges.filter(
+                      (e) => e.from === selectedNode.id || e.to === selectedNode.id,
+                    ).length
+                  }
+                </span>
+              </div>
+              {selectedNode.backlinkCount !== undefined && (
+                <div className="flex justify-between mt-1">
+                  <span>Backlinks</span>
+                  <span className="font-mono font-bold text-primary">
+                    {selectedNode.backlinkCount}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 

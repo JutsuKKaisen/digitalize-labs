@@ -4,6 +4,8 @@ import fs from "fs/promises";
 import { prisma } from "@/lib/prisma";
 import { processDocumentInBackground } from "@/lib/processDocument";
 
+export const dynamic = "force-dynamic";
+
 // Supported file extensions
 const SUPPORTED_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png"];
 const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png"];

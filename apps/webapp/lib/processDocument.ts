@@ -45,6 +45,11 @@ export async function processDocumentInBackground(
 
     let fullOcrText = "";
 
+    // Extract enriched Obsidian data from Python engine response
+    const markdownContent = bundleData.markdownContent || null;
+    const textChunks = bundleData.textChunks || [];
+    const detectedEntities = bundleData.detectedEntities || [];
+
     // Insert pages into DB
     for (const p of pages) {
       const assets = pageAssetsById[p.id] || { lines: [], tokens: [] };
@@ -70,14 +75,48 @@ export async function processDocumentInBackground(
       });
     }
 
+    // Persist TextChunks (SHA-256 hashed paragraphs) for deduplication
+    if (textChunks.length > 0) {
+      await prisma.textChunk.createMany({
+        data: textChunks.map((chunk: { content: string; hash: string; index: number }) => ({
+          documentId: docId,
+          index: chunk.index,
+          content: chunk.content,
+          hash: chunk.hash,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    // Persist regex-detected entities as GraphNode + GraphEdge
+    for (const ent of detectedEntities) {
+      try {
+        const node = await prisma.graphNode.upsert({
+          where: { label_type: { label: ent.text, type: ent.type } },
+          create: { label: ent.text, type: ent.type },
+          update: {},
+        });
+        await prisma.graphEdge.create({
+          data: {
+            nodeId: node.id,
+            documentId: docId,
+            weight: 2.0,
+          },
+        });
+      } catch (e) {
+        // Skip duplicate edges
+      }
+    }
+
     if (autoAI) {
-      // Update to processing for AI phase instead of ready
+      // Update to verifying for AI phase instead of ready or processing
       await prisma.document.update({
         where: { id: docId },
         data: {
-          status: "processing",
+          status: "verifying",
           pageCount: pages.length,
           ocrText: fullOcrText,
+          markdownContent: markdownContent,
         },
       });
 
@@ -92,6 +131,7 @@ export async function processDocumentInBackground(
           status: "ready",
           pageCount: pages.length,
           ocrText: fullOcrText,
+          markdownContent: markdownContent,
         },
       });
     }

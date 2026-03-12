@@ -20,25 +20,57 @@ export async function GET(req: Request) {
 
     const formattedQuery = query.split(/\s+/).filter(Boolean).join(" & ");
 
-    // Using raw query to leverage ts_headline.
+    // Using CTE to first find matching documents, compute backlink counts, and then get snippet chunks
     const resultsRaw = await prisma.$queryRaw<any[]>`
-            SELECT 
-                "id" as "docId", 
-                "title" as "docTitle", 
-                ts_rank("searchVector", to_tsquery('simple', ${formattedQuery})) as "rank",
-                ts_headline('simple', coalesce("ocrText",''), to_tsquery('simple', ${formattedQuery}), 'StartSel=<mark>, StopSel=</mark>, MaxWords=15, MinWords=5, ShortWord=2') as "snippet"
-            FROM "Document"
-            WHERE "searchVector" @@ to_tsquery('simple', ${formattedQuery})
-            ORDER BY "rank" DESC
-            LIMIT 20;
-        `;
+      WITH matched_docs AS (
+          SELECT 
+              "id" as "docId", 
+              "title" as "docTitle",
+              ts_rank("searchVector", websearch_to_tsquery('simple', ${query})) AS "baseRank"
+          FROM "Document"
+          WHERE "searchVector" @@ websearch_to_tsquery('simple', ${query})
+          LIMIT 50
+      ),
+      doc_stats AS (
+          SELECT "documentId", COUNT(id)::int as "backlinkCount"
+          FROM "GraphEdge"
+          WHERE "documentId" IN (SELECT "docId" FROM matched_docs)
+          GROUP BY "documentId"
+      ),
+      matched_chunks AS (
+          SELECT 
+              c."documentId" as "docId",
+              c.index as "chunkIndex",
+              ts_headline('simple', c.content, websearch_to_tsquery('simple', ${query}), 'StartSel=<mark>, StopSel=</mark>, MaxWords=30, MinWords=10, ShortWord=2') as snippet,
+              ROW_NUMBER() OVER(PARTITION BY c."documentId" ORDER BY c.index ASC) as rn
+          FROM "TextChunk" c
+          WHERE c."documentId" IN (SELECT "docId" FROM matched_docs)
+            AND to_tsvector('simple', c.content) @@ websearch_to_tsquery('simple', ${query})
+      )
+      SELECT 
+          d."docId",
+          d."docTitle",
+          COALESCE(s."backlinkCount", 0) as "backlinkCount",
+          d."baseRank",
+          (d."baseRank" * (1.0 + COALESCE(s."backlinkCount", 0) * 0.1)) as "boostedRank",
+          c."chunkIndex",
+          COALESCE(c.snippet, ts_headline('simple', d."docTitle", websearch_to_tsquery('simple', ${query}), 'StartSel=<mark>, StopSel=</mark>')) as "snippet"
+      FROM matched_docs d
+      LEFT JOIN doc_stats s ON d."docId" = s."documentId"
+      LEFT JOIN matched_chunks c ON d."docId" = c."docId" AND c.rn = 1
+      ORDER BY "boostedRank" DESC
+      LIMIT 20;
+    `;
 
-    const results: SearchResult[] = resultsRaw.map((r) => ({
+    const results: SearchResult[] = resultsRaw.map((r: any) => ({
       docId: r.docId,
       docTitle: r.docTitle,
-      pageId: r.docId, // Default link fallback
-      pageNo: 1, // Fallback since we index at document level
+      pageId: r.docId,
+      pageNo: 1,
       snippet: r.snippet || "No snippet available",
+      chunkIndex: r.chunkIndex ?? undefined,
+      boostedRank: r.boostedRank,
+      backlinkCount: r.backlinkCount,
     }));
 
     return NextResponse.json({ results });

@@ -58,8 +58,12 @@ export const api = {
 
   getGraphSummary: async (
     limit: number,
-  ): Promise<{ nodes: GraphNode[]; edges: GraphEdge[] }> => {
-    return fetchClient(`/api/graph/summary?limitNodes=${limit}`);
+    mode: "global" | "local" = "global",
+    docId?: string,
+  ): Promise<{ nodes: GraphNode[]; edges: GraphEdge[]; meta?: any }> => {
+    let url = `/api/graph/summary?limitNodes=${limit}&mode=${mode}`;
+    if (docId) url += `&docId=${encodeURIComponent(docId)}`;
+    return fetchClient(url);
   },
 
   getProcessingStatus: async () => {

@@ -23,6 +23,7 @@ model Document {
   filePath   String?
   xmlData    String?
   ocrText    String?
+  markdownContent String?                   // Enriched text with [[wikilinks]] and #tags (Obsidian format)
   // FTS vector column using Prisma's Unsupported type for raw SQL handling
   searchVector Unsupported("tsvector")?
   verifiedAt DateTime?
@@ -32,6 +33,7 @@ model Document {
   pages     Page[]
   auditLogs AuditLog[]
   edges     GraphEdge[]
+  chunks    TextChunk[]
 
   @@index([status])
   @@index([phase])
@@ -157,13 +159,33 @@ model PageVisit {
 model GraphNode {
   id        String   @id @default(uuid())
   label     String
-  type      String   // e.g., "KEYWORD", "ORG", "PER", "LOC"
+  type      String   // "KEYWORD", "ORG", "PER", "LOC", "DECREE", "LAW", "CIRCULAR", "CLAUSE", "TAG"
   createdAt DateTime @default(now())
 
   edges     GraphEdge[]
 
   @@unique([label, type])
   @@index([label])
+  @@index([type])
+}
+
+// =====================================================
+// Text Chunks (Paragraph-level hashing for deduplication)
+// =====================================================
+
+model TextChunk {
+  id         String   @id @default(uuid())
+  documentId String
+  index      Int                           // paragraph order within document
+  content    String                        // raw paragraph text
+  hash       String                        // SHA-256 hash for dedup detection
+  createdAt  DateTime @default(now())
+
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, index])
+  @@index([hash])                          // fast duplicate lookup across documents
+  @@index([documentId])
 }
 
 model GraphEdge {

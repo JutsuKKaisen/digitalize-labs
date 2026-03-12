@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { cleanupVerifiedPdfs } from "@/lib/cleanupVerifiedPdfs";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: Request) {
   try {
     const authHeader = req.headers.get("authorization");

@@ -122,6 +122,7 @@ export async function PATCH(
         "pending",
         "ingest",
         "processing",
+        "verifying",
         "ready",
         "verified",
         "error",

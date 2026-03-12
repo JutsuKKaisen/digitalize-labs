@@ -7,6 +7,7 @@ export interface Document {
   needsReview: boolean;
   xmlData?: string;
   ocrText?: string;
+  markdownContent?: string;
   verifiedAt?: string | null;
 }
 
@@ -53,13 +54,17 @@ export interface SearchResult {
   pageId: string;
   pageNo: number;
   snippet: string;
+  chunkIndex?: number;
+  boostedRank?: number;
+  backlinkCount?: number;
 }
 
 export interface GraphNode {
   id: string;
-  entityType: 'person' | 'location' | 'org' | 'concept';
+  entityType: 'person' | 'location' | 'org' | 'concept' | 'decree' | 'law' | 'circular' | 'clause' | 'tag' | 'document';
   label: string;
   weight?: number;
+  backlinkCount?: number;
 }
 
 export interface GraphEdge {

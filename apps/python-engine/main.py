@@ -1,5 +1,7 @@
 import os
+import re
 import fitz
+import hashlib
 import pytesseract
 from PIL import Image
 from fastapi import FastAPI, HTTPException
@@ -96,6 +98,103 @@ def extract_entities_and_keywords(text: str):
             
     # return top 15 nodes overall
     return final_nodes[:15]
+
+
+# =====================================================
+# Obsidian-Style Wikilink Injection (Vietnamese Legal NLP)
+# =====================================================
+
+# Vietnamese legal entity patterns — ordered from most specific to least
+LEGAL_PATTERNS = [
+    # Decree: "Nghị định 13/2023/NĐ-CP", "NĐ 45/2024"
+    (r'(?:Nghị\s+định|NĐ)\s+\d+/\d{4}(?:/NĐ-CP)?', 'DECREE'),
+    # Law: "Luật số 59/2020/QH14", "Luật Doanh nghiệp 2020"
+    (r'Luật\s+số\s+\d+/\d{4}(?:/QH\d+)?', 'LAW'),
+    (r'Luật\s+[A-ZÀ-Ỹ][a-zà-ỹ]+(?:\s+[a-zà-ỹA-ZÀ-Ỹ]+)*(?:\s+\d{4})?', 'LAW'),
+    # Circular: "Thông tư 36/2023/TT-BTC"
+    (r'Thông\s+tư\s+\d+/\d{4}(?:/TT-[A-Z]+)?', 'CIRCULAR'),
+    # Resolution: "Nghị quyết 01/NQ-CP"
+    (r'Nghị\s+quyết\s+\d+(?:/\d{4})?(?:/NQ-[A-Z]+)?', 'RESOLUTION'),
+    # Company: "Công ty TNHH ABC", "CTCP XYZ"
+    (r'(?:Công\s+ty\s+(?:TNHH|CP|Cổ\s+phần)|CTCP|CT\s+TNHH)\s+[A-ZÀ-Ỹ][^\.,\n]{3,40}', 'ORG'),
+    # Article/Clause: "Khoản 3 Điều 12", "Điều 5"
+    (r'(?:Khoản\s+\d+\s+)?Điều\s+\d+', 'CLAUSE'),
+]
+
+
+def inject_wikilinks(text: str) -> tuple:
+    """
+    Scan raw OCR text for Vietnamese legal entities and wrap them in [[wikilinks]].
+    Also prepends #tags for entity types found.
+    Returns (enriched_markdown, detected_entities).
+    """
+    if not text or not text.strip():
+        return text, []
+
+    entities = []
+    seen = set()
+
+    for pattern, etype in LEGAL_PATTERNS:
+        for match in re.finditer(pattern, text):
+            entity_text = match.group().strip()
+            key = entity_text.lower()
+            if key not in seen:
+                seen.add(key)
+                entities.append({
+                    "text": entity_text,
+                    "type": etype,
+                    "start": match.start(),
+                    "end": match.end()
+                })
+
+    # Sort by position descending to replace without offset issues
+    entities.sort(key=lambda e: e["start"], reverse=True)
+    enriched = text
+    for ent in entities:
+        original = enriched[ent["start"]:ent["end"]]
+        # Don't double-wrap already-wrapped entities
+        before = enriched[max(0, ent["start"] - 2):ent["start"]]
+        if before.endswith('[['):
+            continue
+        enriched = enriched[:ent["start"]] + f'[[{original}]]' + enriched[ent["end"]:]
+
+    # Add tag header with entity type tags
+    type_tags = set(e["type"] for e in entities)
+    if type_tags:
+        tag_line = " ".join(f"#{t.lower()}" for t in sorted(type_tags))
+        enriched = tag_line + "\n\n" + enriched
+
+    # Re-sort entities by position ascending for return
+    entities.sort(key=lambda e: e["start"])
+    return enriched, entities
+
+
+# =====================================================
+# SHA-256 Paragraph Chunk Hashing
+# =====================================================
+
+def hash_text_chunks(text: str, min_length: int = 20) -> list:
+    """
+    Split text into paragraph-level chunks and compute SHA-256 hashes.
+    Returns list of {content, hash, index} for deduplication across documents.
+    """
+    if not text or not text.strip():
+        return []
+
+    # Split by double newline (paragraphs)
+    paragraphs = re.split(r'\n\s*\n', text)
+    chunks = []
+    for i, para in enumerate(paragraphs):
+        para = para.strip()
+        if len(para) < min_length:
+            continue
+        content_hash = hashlib.sha256(para.encode('utf-8')).hexdigest()
+        chunks.append({
+            "content": para,
+            "hash": content_hash,
+            "index": i
+        })
+    return chunks
 
 
 class ProcessRequest(BaseModel):
@@ -202,13 +301,37 @@ def process_document(req: ProcessRequest):
             "weight": node["weight"]
         })
 
+    # Obsidian enrichment: wikilink injection + chunk hashing
+    enriched_text, detected_entities = inject_wikilinks(combined_text)
+    text_chunks = hash_text_chunks(combined_text)
+
+    # Merge regex-detected entities into graph_nodes (avoid duplicates)
+    existing_labels = set(n["label"].lower() for n in graph_nodes)
+    for ent in detected_entities:
+        if ent["text"].lower() not in existing_labels:
+            existing_labels.add(ent["text"].lower())
+            graph_nodes.append({
+                "label": ent["text"],
+                "type": ent["type"],
+                "weight": 2.0  # Legal entities get high weight
+            })
+            graph_edges.append({
+                "nodeLabel": ent["text"],
+                "nodeType": ent["type"],
+                "weight": 2.0
+            })
+
     return {
         "pages": pages_data,
         "pageAssetsById": page_assets_by_id,
         "graph": {
             "nodes": graph_nodes,
             "edges": graph_edges
-        }
+        },
+        # Obsidian enrichment outputs
+        "markdownContent": enriched_text,
+        "detectedEntities": detected_entities,
+        "textChunks": text_chunks
     }
 
 def extract_with_pymupdf(page, page_id, zoom=2.0):
